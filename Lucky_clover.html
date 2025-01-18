@@ -1,0 +1,226 @@
+<!DOCTYPE html><html lang="zh-TW"><head><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' 'unsafe-inline' https://fonts.gstatic.com; img-src 'self' data: blob: https://pfst.cf2.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com; media-src 'self' data: blob: https://pfst.cf2.poecdn.net https://i.imgur.com https://wikimedia.org; frame-src 'self' https://www.youtube.com; upgrade-insecure-requests; block-all-mixed-content;">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>蒙提霍爾問題（Monty Hall problem）</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background-color: #006400; /* 深綠色 */
+            color: white;
+        }
+        #game-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .card {
+            width: 100px;
+            height: 150px;
+            background-color: #00FFFF; /* 青色（淡藍色） */
+            border: 2px solid black;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 48px;
+            color: black;
+        }
+        .card.flipped {
+            background-color: white;
+            color: black;
+        }
+        #buttons {
+            margin-bottom: 20px;
+        }
+        button {
+            font-size: 16px;
+            padding: 10px 20px;
+            margin: 0 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        table {
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            background-color: white;
+            color: black;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 5px 10px;
+            text-align: center;
+        }
+        #result, #statistics {
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        #game-description {
+            max-width: 600px;
+            margin-bottom: 20px;
+            text-align: justify;
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚗蒙提霍爾問題（Monty Hall problem）🐐</h1>
+    <div id="game-description">
+        遊戲說明：你的面前有三張牌，其中有兩張是山羊🐐，有一張是汽車🚗，你的目標是選中有🚗的牌。你可以先點選任何一張牌，我會打開另外兩張牌中，有🐐的那張。接著你可以更改你原先的選擇，打開剩下那張未選的牌(換牌)，或是打開你一開始選擇的那張牌(不換牌)，我們來看看是「換牌」得到🚗的機率較高，還是「不換牌」得到🚗的機率較高。
+    </div>
+    <div id="game-container"></div>
+    <div id="buttons"></div>
+    <div id="result"></div>
+    <div id="statistics"></div>
+    <table id="record">
+        <tbody><tr>
+            <th>次數</th>
+            <th>不換牌</th>
+            <th>換牌</th>
+        </tr>
+    </tbody></table>
+
+    <script>
+        let gameCount = 0;
+        let stayWins = 0;
+        let switchWins = 0;
+        let stayCount = 0;
+        let switchCount = 0;
+        let selectedCard;
+        let carPosition;
+        let revealedGoat;
+
+        const GOAT_ICON = '🐐';
+        const CAR_ICON = '🚗';
+
+        function initGame() {
+            gameCount = 0;
+            stayWins = 0;
+            switchWins = 0;
+            stayCount = 0;
+            switchCount = 0;
+            const record = document.getElementById('record');
+            while (record.rows.length > 1) {
+                record.deleteRow(1);
+            }
+            document.getElementById('statistics').textContent = '';
+            startGame();
+        }
+
+        function startGame() {
+            gameCount++;
+            const gameContainer = document.getElementById('game-container');
+            gameContainer.innerHTML = '';
+            const buttons = document.getElementById('buttons');
+            buttons.innerHTML = '';
+            document.getElementById('result').textContent = '';
+
+            carPosition = Math.floor(Math.random() * 3);
+
+            for (let i = 0; i < 3; i++) {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.textContent = '🍀';
+                card.onclick = () => selectCard(i);
+                gameContainer.appendChild(card);
+            }
+        }
+
+        function selectCard(index) {
+            selectedCard = index;
+            const cards = document.querySelectorAll('.card');
+            cards.forEach(card => card.onclick = null);
+
+            do {
+                revealedGoat = Math.floor(Math.random() * 3);
+            } while (revealedGoat === selectedCard || revealedGoat === carPosition);
+
+            cards[revealedGoat].textContent = GOAT_ICON;
+            cards[revealedGoat].classList.add('flipped');
+
+            const buttons = document.getElementById('buttons');
+            buttons.innerHTML = `
+                <button onclick="makeDecision('stay')">不換牌</button>
+                <button onclick="makeDecision('switch')">換牌</button>
+            `;
+        }
+
+        function makeDecision(decision) {
+            const cards = document.querySelectorAll('.card');
+            const buttons = document.getElementById('buttons');
+            buttons.innerHTML = '';
+
+            let finalCard;
+            if (decision === 'stay') {
+                finalCard = selectedCard;
+                stayCount++;
+            } else {
+                finalCard = 3 - selectedCard - revealedGoat;
+                switchCount++;
+            }
+
+            cards[finalCard].textContent = finalCard === carPosition ? CAR_ICON : GOAT_ICON;
+            cards[finalCard].classList.add('flipped');
+
+            const result = finalCard === carPosition;
+            const resultText = result ? '恭喜成功🎯' : '選錯了哦😈';
+            document.getElementById('result').textContent = resultText;
+
+            updateRecord(decision, result);
+            updateStatistics();
+
+            buttons.innerHTML = `
+                <button onclick="startGame()">繼續遊戲</button>
+                <button onclick="endGame()">結束遊戲</button>
+            `;
+        }
+
+        function updateRecord(decision, result) {
+            const record = document.getElementById('record');
+            const newRow = record.insertRow(-1);
+            newRow.insertCell(0).textContent = gameCount;
+            newRow.insertCell(1).textContent = decision === 'stay' ? (result ? 'O' : 'X') : '';
+            newRow.insertCell(2).textContent = decision === 'switch' ? (result ? 'O' : 'X') : '';
+
+            if (result) {
+                if (decision === 'stay') stayWins++;
+                else switchWins++;
+            }
+        }
+
+        function updateStatistics() {
+            const stayWinRate = (stayWins / stayCount * 100 || 0).toFixed(2);
+            const switchWinRate = (switchWins / switchCount * 100 || 0).toFixed(2);
+            
+            document.getElementById('statistics').innerHTML = `
+                不換牌: ${stayWins}次成功 / ${stayCount}次嘗試 (成功率${stayWinRate}%)<br>
+                換牌: ${switchWins}次成功 / ${switchCount}次嘗試 (成功率${switchWinRate}%)
+            `;
+        }
+
+        function endGame() {
+            updateStatistics();
+
+            document.getElementById('buttons').innerHTML = `
+                <button onclick="initGame()">重新開始</button>
+            `;
+        }
+
+        initGame();
+    </script>
+
+
+</body></html>
