@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>蒙提霍爾問題（Monty Hall problem）統計表</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        input, button {
+            margin: 5px;
+            padding: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        #errorMessage {
+            color: red;
+            margin-top: 10px;
+        }
+        label {
+            display: inline-block;
+            width: 150px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚗蒙提霍爾問題（Monty Hall problem）🐐統計表</h1>
+    
+    <div>
+        <label for="noSwitch">🚫不換牌嘗試次數：</label>
+        <input type="number" id="noSwitch">
+        <br>
+        <label for="noSwitchSuccess">🎊不換牌成功次數：</label>
+        <input type="number" id="noSwitchSuccess">
+        <br>
+        <label for="switch">🔄換牌嘗試次數：</label>
+        <input type="number" id="switch">
+        <br>
+        <label for="switchSuccess">🎉換牌成功次數：</label>
+        <input type="number" id="switchSuccess">
+        <br>
+        <button onclick="addData()">新增數據</button>
+        <div id="errorMessage"></div>
+    </div>
+
+    <h2>結果統計</h2>
+    <div id="stats"></div>
+
+    <h2>數據紀錄表</h2>
+    <table id="recordTable">
+        <tr>
+            <th>組別(組員)</th>
+            <th>不換牌嘗試次數(次)</th>
+            <th>不換牌成功次數(次)</th>
+            <th>換牌嘗試次數(次)</th>
+            <th>換牌成功次數(次)</th>
+            <th>不換牌成功機率🎊</th>
+            <th>換牌成功機率🎉</th>
+        </tr>
+    </table>
+
+    <script>
+        let data = [];
+
+        function addData() {
+            const noSwitch = parseInt(document.getElementById('noSwitch').value);
+            const noSwitchSuccess = parseInt(document.getElementById('noSwitchSuccess').value);
+            const switchTry = parseInt(document.getElementById('switch').value);
+            const switchSuccess = parseInt(document.getElementById('switchSuccess').value);
+            const errorMessage = document.getElementById('errorMessage');
+
+            if (isNaN(noSwitch) || isNaN(noSwitchSuccess) || isNaN(switchTry) || isNaN(switchSuccess)) {
+                errorMessage.textContent = '請填寫所有欄位，且必須為整數。';
+                return;
+            }
+
+            if (noSwitchSuccess > noSwitch || switchSuccess > switchTry) {
+                errorMessage.textContent = '輸入數據有誤，請檢查。';
+                return;
+            }
+
+            errorMessage.textContent = ''; // 清除錯誤訊息
+
+            const noSwitchRate = noSwitch ? (noSwitchSuccess / noSwitch * 100).toFixed(2) : 0;
+            const switchRate = switchTry ? (switchSuccess / switchTry * 100).toFixed(2) : 0;
+
+            data.push({noSwitch, noSwitchSuccess, switchTry, switchSuccess, noSwitchRate, switchRate});
+            updateTable();
+            updateStats();
+            clearInputs();
+        }
+
+        function updateTable() {
+            const table = document.getElementById('recordTable');
+            const newRow = table.insertRow(-1);
+            const newData = data[data.length - 1];
+            
+            newRow.insertCell(0).textContent = data.length;
+            newRow.insertCell(1).textContent = newData.noSwitch;
+            newRow.insertCell(2).textContent = newData.noSwitchSuccess;
+            newRow.insertCell(3).textContent = newData.switchTry;
+            newRow.insertCell(4).textContent = newData.switchSuccess;
+            newRow.insertCell(5).textContent = newData.noSwitchRate + '%';
+            newRow.insertCell(6).textContent = newData.switchRate + '%';
+        }
+
+        function updateStats() {
+            const totalNoSwitch = data.reduce((sum, item) => sum + item.noSwitch, 0);
+            const totalNoSwitchSuccess = data.reduce((sum, item) => sum + item.noSwitchSuccess, 0);
+            const totalSwitch = data.reduce((sum, item) => sum + item.switchTry, 0);
+            const totalSwitchSuccess = data.reduce((sum, item) => sum + item.switchSuccess, 0);
+
+            const noSwitchRate = totalNoSwitch ? (totalNoSwitchSuccess / totalNoSwitch * 100).toFixed(2) : 0;
+            const switchRate = totalSwitch ? (totalSwitchSuccess / totalSwitch * 100).toFixed(2) : 0;
+
+            document.getElementById('stats').innerHTML = `
+                <p>⏳不換牌嘗試總次數: ${totalNoSwitch}次</p>
+                <p>🎊不換牌成功總次數: ${totalNoSwitchSuccess}次</p>
+                <p>⏳換牌嘗試總次數: ${totalSwitch}次</p>
+                <p>🎉換牌成功總次數: ${totalSwitchSuccess}次</p>
+                <p>🎊不換牌成功機率: ${noSwitchRate}%</p>
+                <p>🎉換牌成功機率: ${switchRate}%</p>
+            `;
+        }
+
+        function clearInputs() {
+            document.getElementById('noSwitch').value = '';
+            document.getElementById('noSwitchSuccess').value = '';
+            document.getElementById('switch').value = '';
+            document.getElementById('switchSuccess').value = '';
+        }
+    </script>
+</body>
+</html>
